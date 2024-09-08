@@ -90,6 +90,9 @@ public class AliceMain {
         PublicKey bobPublicKey = Serializer.getSerializedObject("alice/bobPublicKey.ser");
         Message message = getMessage();
         
+        long start = System.currentTimeMillis();
+        System.out.println("Verificando a assinatura da mensagem...");
+
         Cipher decryptCipher = Cipher.getInstance("RSA");
         decryptCipher.init(Cipher.DECRYPT_MODE, alicePrivateKey);
         String decipheredMessage = new String(decryptCipher.doFinal(message.cipherText), StandardCharsets.UTF_8);
@@ -100,6 +103,9 @@ public class AliceMain {
 
             publicSignature.update(decipheredMessage.getBytes(StandardCharsets.UTF_8));
             boolean isCorrect = publicSignature.verify(message.signature);
+
+            long end = System.currentTimeMillis();
+            System.out.println("Assinatura da mensagem verificada em " + (end - start) + "ms");
             
             if(isCorrect){
                 System.out.println("Assinatura da mensagem é válida.");
@@ -107,15 +113,23 @@ public class AliceMain {
                 System.out.println("Assinatura de mensagem é inválida.");
             }
         } 
+
+
     }
 
 
     public static void readBobMessage(PrivateKey alicePrivateKey) throws Exception{
         Message message = getMessage();
       
+        long start = System.currentTimeMillis();
+        System.out.println("Decifrando a mensagem...");
+        
         Cipher decryptCipher = Cipher.getInstance("RSA");
         decryptCipher.init(Cipher.DECRYPT_MODE, alicePrivateKey);
         String decipheredMessage = new String(decryptCipher.doFinal(message.cipherText), StandardCharsets.UTF_8);
+
+        long end = System.currentTimeMillis();
+        System.out.println("Mensagem decifrada em " + (end - start) + "ms");
 
         System.out.println("Mensagem cifrada: " +  new String(message.cipherText));
         System.out.println("Assinatura: " +  new String(message.signature));
