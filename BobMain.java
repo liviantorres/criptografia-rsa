@@ -9,74 +9,70 @@ import java.util.Scanner;
 public class BobMain {
     public static void main(String[] args) throws Exception {
         Scanner scanner = new Scanner(System.in);
-        
-        var bobKeyPair = KeyGenerator.generateKeyPair();
-
-        System.out.println("\n\n\n\n\n");
-
+        KeyPair keyPair = null;
         String plainMessage = "";
         byte[] signature = null;
 
-        int option = 0;
+        int selectedOption = 0;
+        System.out.println("\n\n");
 
-        while (option != 5) {
+        while (selectedOption != 6) {
             // Exibe o menu
             System.out.println("------ MENU do BOB ------");
-            System.out.println("1. Enviar chave pública para Alice");
-            System.out.println("2. Gerar mensagem");
-            System.out.println("3. Assinar mensagem com chave privada");
-            System.out.println("4. Enviar mensagem assinada para Alice");
-            System.out.println("5. Sair");
+            System.out.println("1. Gerar par de chaves");
+            System.out.println("2. Enviar chave pública para Alice");
+            System.out.println("3. Gerar mensagem");
+            System.out.println("4. Assinar mensagem com chave privada");
+            System.out.println("5. Enviar mensagem assinada para Alice");
+            System.out.println("6. Sair");
             System.out.print("Escolha uma opção: ");
 
             // Lê a escolha do usuário
-            option = scanner.nextInt();
+            selectedOption = scanner.nextInt();
             scanner.nextLine();  
 
             // Executa a ação com base na escolha
-            switch (option) {
+            switch (selectedOption) {
                 case 1:
-                    System.out.println("\nVocê escolheu a Opção 1 - Enviar chave pública para Alice\n");        
-                    sendPublicKeyToAlice(bobKeyPair.getPublic());
-                    
+                    System.out.println("\nVocê escolheu a Opção 1 - Gerar par de chaves");
+                    keyPair = generateNewKeyPair(); 
+                
                     break;
 
                 case 2:
-                    System.out.println("\nVocê escolheu a Opção 2 - Gerar mensagem");
-                    System.out.print("Digite a mensagem: ");
-                    plainMessage = scanner.nextLine();  
-                   
+                    System.out.println("\nVocê escolheu a Opção 2 - Enviar chave pública para Alice");     
+                    
+                    if(keyPair == null){
+                        System.out.println("Para enviar uma chave pública primeiro você precisará criar um par de chaves.");
+                    } else{
+                        sendPublicKeyToAlice(keyPair.getPublic());
+                    }
+
                     break;
 
                 case 3:
-                    System.out.println("\nVocê escolheu a Opção 3 - Assinar mensagem com chave privada");
-                    signature = signMessage(plainMessage, bobKeyPair.getPrivate());
-                    System.out.println("Mensagem assinada.");
+                    System.out.println("\nVocê escolheu a Opção 3 - Gerar mensagem");
+                    System.out.print("Digite a mensagem: ");
+                    plainMessage = scanner.nextLine();  
                     break;
-                    
+
                 case 4:
-                    System.out.println("\nVocê escolheu a Opção 4 - Enviar mensagem assinada para Alice");
+                    System.out.println("\nVocê escolheu a Opção 4 - Assinar mensagem com chave privada");
 
-                    if (signature != null) {
-                        System.out.println("Enviando mensagem assinada para Alice\n");
-                        PublicKey alicePublicKey = Serializer.getSerializedObject("bob/bobFriendPublicKey.ser");
-                        byte[] cipherText = encryptMessageToSendToAlice(plainMessage, alicePublicKey);
-                        
-                        System.out.println("Mensagem limpa: " + plainMessage);
-                        System.out.println("Texto Cifrado: " + new String(cipherText));
-                        System.out.println("Assinatura: " + new String(signature));
-
-                        Message message = new Message();
-                        message.cipherText = cipherText;
-                        message.signature = signature;     
-
-                        sendMessageToAlice(message);      
-                    } else {
-                        System.out.println("Mensagem não assinada, assine a mensagem antes de enviá-la");
+                    if(keyPair == null){
+                        System.out.println("Para assinar a mensagem com a chave privada primeiro você precisará criar um par de chaves.");
+                    } else{
+                        signature = signMessage(plainMessage, keyPair.getPrivate());
                     }
-                    
+
                     break;
+                    
                 case 5:
+                    System.out.println("\nVocê escolheu a Opção 5 - Enviar mensagem assinada para Alice");
+                    sendSignedMessageToAlice(plainMessage, signature);
+                    break;
+
+                case 6:
                     System.out.println("Saindo...");
                     break;
                 default:
@@ -86,19 +82,28 @@ public class BobMain {
             System.out.println("\n\n\n\n\n");
         }
 
-       
         scanner.close();
     }
 
+    // Gera um novo par de chaves RSA
+    public static KeyPair generateNewKeyPair() throws Exception {
+        KeyPair pair = KeyGenerator.generateKeyPair();
+        return pair;
+    }
+
     public static void sendPublicKeyToAlice(PublicKey publicKey) {
-        Serializer.saveObject("alice/aliceFriendPublicKey.ser", publicKey);
+        Serializer.saveObject("alice/bobPublicKey.ser", publicKey);
+        System.out.println("Chave pública enviada para Alice.");
     }
 
     public static byte[] signMessage(String plainMessage, PrivateKey privateKey) throws Exception {
         Signature privateSignature = Signature.getInstance("SHA256withRSA");
         privateSignature.initSign(privateKey);
         privateSignature.update(plainMessage.getBytes(StandardCharsets.UTF_8));
-        return privateSignature.sign();
+        byte[] signature = privateSignature.sign();
+        
+        System.out.println("Mensagem assinada.");
+        return signature;
     }
 
     public static byte[] encryptMessageToSendToAlice(String plainMessage, PublicKey alicePublicKey) throws Exception {
@@ -107,7 +112,23 @@ public class BobMain {
         return encryptCipher.doFinal(plainMessage.getBytes());
     }
 
-    public static void sendMessageToAlice(Message message) {
-        Serializer.saveObject("alice/aliceMessages.ser", message);
+    public static void sendSignedMessageToAlice(String plainMessage, byte[] signature) throws Exception{
+        if (signature != null) {
+            System.out.println("Enviando mensagem assinada para Alice\n");
+            PublicKey alicePublicKey = Serializer.getSerializedObject("bob/alicePublicKey.ser");
+            byte[] cipherText = encryptMessageToSendToAlice(plainMessage, alicePublicKey);
+            
+            System.out.println("Texto claro: " + plainMessage);
+            System.out.println("Texto Cifrado: " + new String(cipherText));
+            System.out.println("Assinatura: " + new String(signature));
+
+            Message message = new Message();
+            message.cipherText = cipherText;
+            message.signature = signature;     
+
+            Serializer.saveObject("alice/aliceMessages.ser", message); 
+        } else {
+            System.out.println("Mensagem não assinada, assine a mensagem antes de enviá-la");
+        }
     }
 }
