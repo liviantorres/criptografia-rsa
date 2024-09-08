@@ -76,19 +76,32 @@ public class EvaMain {
     }
 
     public static byte[] signMessage(String plainMessage, PrivateKey privateKey) throws Exception {
+        long start = System.currentTimeMillis();
+        System.out.println("Assinando mensagem.");
+
         Signature privateSignature = Signature.getInstance("SHA256withRSA");
         privateSignature.initSign(privateKey);
         privateSignature.update(plainMessage.getBytes(StandardCharsets.UTF_8));
         byte[] signature = privateSignature.sign();
-        
+
+        long end = System.currentTimeMillis();
+        System.out.println("Tempo de assinatura: " + (end - start) + "ms");
+
         System.out.println("Mensagem assinada.");
         return signature;
     }
 
     public static byte[] encryptMessageToSendToAlice(String plainMessage, PublicKey alicePublicKey) throws Exception {
+        long start = System.currentTimeMillis();
+        System.out.println("Cifrando mensagem para envio.");
+
         Cipher encryptCipher = Cipher.getInstance("RSA");
         encryptCipher.init(Cipher.ENCRYPT_MODE, alicePublicKey);
-        return encryptCipher.doFinal(plainMessage.getBytes());
+        byte[] cipherText = encryptCipher.doFinal(plainMessage.getBytes());
+
+        long end = System.currentTimeMillis();
+        System.out.println("Mensagem cifrada em " + (end - start) + "ms");
+        return cipherText;
     }
 
     public static void sendSignedMessageToAlice(String plainMessage, byte[] signature) throws Exception{
