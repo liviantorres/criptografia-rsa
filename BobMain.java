@@ -24,7 +24,8 @@ public class BobMain {
             System.out.println("3. Gerar mensagem");
             System.out.println("4. Assinar mensagem com chave privada");
             System.out.println("5. Enviar mensagem assinada para Alice");
-            System.out.println("6. Sair");
+            System.out.println("6. Ler mensagem cifrada");
+            System.out.println("7. Sair");
             System.out.print("Escolha uma opção: ");
 
             // Lê a escolha do usuário
@@ -71,8 +72,17 @@ public class BobMain {
                     System.out.println("\nVocê escolheu a Opção 5 - Enviar mensagem assinada para Alice");
                     sendSignedMessageToAlice(plainMessage, signature);
                     break;
-
                 case 6:
+                        System.out.println("\nVocê escolheu a Opção 6 - Ler mensagem cifrada");
+
+                        if (keyPair != null) {
+                            readEncryptedMessageFromAliceWithoutSignature(keyPair.getPrivate());
+                        } else {
+                            System.out.println("Para ler a mensagem cifrada, você precisará gerar um par de chaves.");
+                        }
+                    break;
+
+                case 7:
                     System.out.println("Saindo...");
                     break;
                 default:
@@ -142,6 +152,26 @@ public class BobMain {
             Serializer.saveObject("alice/aliceMessages.ser", message); 
         } else {
             System.out.println("Mensagem não assinada, assine a mensagem antes de enviá-la");
+        }
+    }
+    public static void readEncryptedMessageFromAliceWithoutSignature(PrivateKey bobPrivateKey) throws Exception {
+        byte[] encryptedMessage = Serializer.getSerializedObject("bob/aliceEncryptedMessage.ser");
+    
+        if (encryptedMessage != null) {
+            long start = System.currentTimeMillis();
+            System.out.println("Decifrando a mensagem...");
+    
+            Cipher decryptCipher = Cipher.getInstance("RSA");
+            decryptCipher.init(Cipher.DECRYPT_MODE, bobPrivateKey);
+            String decipheredMessage = new String(decryptCipher.doFinal(encryptedMessage), StandardCharsets.UTF_8);
+    
+            long end = System.currentTimeMillis();
+            System.out.println("Mensagem decifrada em " + (end - start) + "ms");
+    
+            
+            System.out.println("Texto claro: " + decipheredMessage);
+        } else {
+            System.out.println("Nenhuma mensagem cifrada foi recebida de Alice.");
         }
     }
 }
